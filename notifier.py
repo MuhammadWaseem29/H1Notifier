@@ -9,22 +9,22 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from dotenv import load_dotenv
 
-# Configurar logging
+# Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# Cargar variables de entorno
+# Load environment variables
 load_dotenv()
 SENDER_EMAIL = os.getenv("EMAIL_USER")
 SENDER_PASSWORD = os.getenv("EMAIL_PASS")
 RECEIVER_EMAIL = os.getenv("EMAIL_RECEIVER")
 
 if not all([SENDER_EMAIL, SENDER_PASSWORD, RECEIVER_EMAIL]):
-    logging.error("Faltan variables de entorno en el archivo .env")
+    logging.error("Missing environment variables in the .env file")
     exit(1)
 
-# Configurar Selenium
+# Configure Selenium
 options = webdriver.ChromeOptions()
-options.add_argument("--headless")  # Modo sin interfaz gráfica
+options.add_argument("--headless")  # Run in headless mode
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 
@@ -37,7 +37,7 @@ LATEST_PROGRAM_FILE = "latest_program.json"
 
 
 def load_last_program():
-    """Carga el último programa detectado desde un archivo JSON."""
+    """Load the last detected program from a JSON file."""
     if os.path.exists(LATEST_PROGRAM_FILE):
         try:
             with open(LATEST_PROGRAM_FILE, "r") as f:
@@ -49,97 +49,82 @@ def load_last_program():
 
 
 def save_last_program(program_name):
-    """Guarda el último programa detectado en un archivo JSON."""
+    """Save the last detected program into a JSON file."""
     with open(LATEST_PROGRAM_FILE, "w") as f:
         json.dump({"latest_program": program_name}, f)
 
 
 def send_email(subject, body):
-    """Enviar notificación por correo electrónico."""
+    """Send an email notification."""
     try:
-        mensaje = EmailMessage()
-        mensaje["Subject"] = subject
-        mensaje["From"] = SENDER_EMAIL
-        mensaje["To"] = RECEIVER_EMAIL
-        mensaje.set_content(body, subtype="html")
+        message = EmailMessage()
+        message["Subject"] = subject
+        message["From"] = SENDER_EMAIL
+        message["To"] = RECEIVER_EMAIL
+        message.set_content(body, subtype="html")
 
         with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
             smtp.starttls()
             smtp.login(SENDER_EMAIL, SENDER_PASSWORD)
-            smtp.send_message(mensaje)
-            logging.info("Correo de notificación enviado correctamente.")
+            smtp.send_message(message)
+            logging.info("Notification email sent successfully.")
     except Exception as e:
-        logging.error(f"Error enviando correo: {e}")
+        logging.error(f"Error sending email: {e}")
 
 
-# Ejecutar monitoreo
+# Main Monitoring Logic
 try:
     driver.get(URL)
-    time.sleep(5)  # Esperar carga de página
+    time.sleep(5)  # Wait for page to fully load
 
     try:
         first_program_element = driver.find_element(By.XPATH, XPATH_BASE.format(1))
         first_program_name = first_program_element.text.strip()
         first_program_link = first_program_element.get_attribute("href")
 
-        latest_program = load_last_program()
+        last_program = load_last_program()
 
-        if latest_program is None:
-            latest_program = first_program_name
-            logging.info(f"Programa actual encontrado: {first_program_name}")
-            save_last_program(latest_program)
+        if last_program is None:
+            last_program = first_program_name
+            logging.info(f"Detected current program: {first_program_name}")
+            save_last_program(last_program)
             send_email(
-    "Bug Hunter jf0x0r, primer programa detectado",
-    f"""
-    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 20px; background: #f9fafb; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); text-align: center;">
-        <h2 style="color: #333; font-size: 24px;">🚀 Primer programa monitoreado</h2>
-        <p style="color: #666; font-size: 16px;">Un nuevo programa ha sido registrado en nuestro sistema de monitoreo.</p>
-        <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExY3Z5cm9vNXR0MW51em40OG55eHA2a2VjYm5iZDNxbnZ5eG52YTFibiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/92jYkH87yxV1C/giphy.gif" 
-             alt="Mr. Robot feliz" style="width: 100%; max-width: 300px; border-radius: 8px; margin: 10px 0;">
-        <div style="background: #fff; padding: 15px; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);">
-            <p style="margin: 0; font-size: 18px; font-weight: bold; color: #222;">{first_program_name}</p>
-        </div>
-        <a href="{first_program_link}" style="display: inline-block; text-decoration: none; background: #2563eb; color: white; padding: 10px 15px; border-radius: 6px; font-size: 16px; margin-top: 10px;">🔗 Ver programa en HackerOne</a>
-        <p style="color: #aaa; font-size: 12px; margin-top: 15px;">Seguiremos monitoreando nuevos programas para ti.</p>
-    </div>
-    """
-)
-        elif first_program_name != latest_program:
-            logging.info(f"Nuevo programa encontrado: {first_program_name}")
+                "Bug Hunter jf0x0r, First program detected",
+                f"""<h1>✨ New program detected on HackerOne ✨</h1>
+                <p>Hello 👋 bug hunter!</p>
+                <p>A new program has been detected on HackerOne:</p>
+                <ul>
+                    <li><strong>Program:</strong> {first_program_name}</li>
+                    <li><strong>Link:</strong> <a href="{first_program_link}">{first_program_link}</a></li>
+                </ul>
+                <p>Good luck and happy hunting! 🐞</p>"""
+            )
+        elif first_program_name != last_program:
+            logging.info(f"New program detected: {first_program_name}")
             save_last_program(first_program_name)
             send_email(
-    "Bug Hunter jf0x0r, ¡Nuevo programa en HackerOne!",
-    f"""
-    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 20px; background: #f9fafb; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); text-align: center;">
-        <h2 style="color: #2563eb; font-size: 24px;">🔥 ¡Nuevo programa disponible!</h2>
-        <p style="color: #555; font-size: 16px;">Hemos detectado un nuevo programa en HackerOne. ¡No pierdas la oportunidad de revisarlo!</p>
-        <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExY3Z5cm9vNXR0MW51em40OG55eHA2a2VjYm5iZDNxbnZ5eG52YTFibiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/92jYkH87yxV1C/giphy.gif" 
-             alt="Mr. Robot feliz" style="width: 100%; max-width: 300px; border-radius: 8px; margin: 10px 0;">
-        <div style="background: #fff; padding: 15px; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);">
-            <p style="margin: 0; font-size: 18px; font-weight: bold; color: #222;">{first_program_name}</p>
-        </div>
-        <a href="{first_program_link}" style="display: inline-block; text-decoration: none; background: #16a34a; color: white; padding: 12px 18px; border-radius: 6px; font-size: 16px; font-weight: bold; margin-top: 10px;">🚀 Revisar programa</a>
-        <p style="color: #aaa; font-size: 12px; margin-top: 15px;">Seguimos monitoreando nuevos programas para ti.</p>
-    </div>
-    """
-)
+                "Bug Hunter jf0x0r, New Program on HackerOne!",
+                f"""<h1>🚀 New Program Alert on HackerOne!</h1>
+                <p>Hey Hacker! 👨‍💻</p>
+                <p>A new program has just launched:</p>
+                <ul>
+                    <li><strong>Program:</strong> {first_program_name}</li>
+                    <li><strong>Link:</strong> <a href="{first_program_link}">{first_program_link}</a></li>
+                </ul>
+                <p>Grab your tools and go wild! ⚔️</p>"""
+            )
         else:
-            logging.info("No hay nuevos programas.")
+            logging.info("No new program detected.")
             send_email(
-    "Bug Hunter jf0x0r, sin novedades",
-    f"""
-    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 20px; background: #f9fafb; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); text-align: center;">
-        <h2 style="color: #374151; font-size: 22px;">😿 Sin novedades por ahora...</h2>
-        <p style="color: #555; font-size: 16px;">Hemos revisado HackerOne, pero no encontramos nuevos programas para ti.</p>
-        <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMTAxZWZzMHZsNnQyZDd1dmRhbjlsY2R6MThkY3BlM2Y3bXphOWEzZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l0K4ovRrRJSs1A4XS/giphy.gif" alt="Gatito triste" style="width: 100%; max-width: 300px; border-radius: 8px; margin: 10px 0;">
-        <p style="color: #777; font-size: 14px;">No te preocupes, seguiremos monitoreando y te avisaremos en cuanto haya algo interesante.</p>
-        <p style="color: #aaa; font-size: 12px; margin-top: 15px;">🐾 Mientras tanto, relájate y afila tus habilidades de bug hunting. 💻</p>
-    </div>
-    """
-)
+                "Bug Hunter jf0x0r, No updates yet",
+                f"""<h1>No new updates 😴</h1>
+                <p>Hey Hacker,</p>
+                <p>Currently, there are no new programs available on HackerOne.</p>
+                <p>Keep calm and check back later! 💻</p>"""
+            )
 
     except Exception as e:
-        logging.error(f"Error al extraer información: {e}")
+        logging.error(f"Error extracting program info: {e}")
 
 finally:
-    driver.quit()  # Cerrar el driver correctamente
+    driver.quit()
